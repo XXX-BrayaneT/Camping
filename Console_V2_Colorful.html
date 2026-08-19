@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Camping Jardin — Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+/* ============================================================================
+   TOKENS
+   ============================================================================ */
+:root{
+  --pine:      #123024;
+  --pine-2:    #0E7A4F;
+  --moss:      #1E9D5B;
+  --moss-pale: #DEF6E7;
+  --dusk:      #2F6FED;
+  --dusk-pale: #E4ECFE;
+  --heather:   #8B5CF6;
+  --heather-pale:#EFE9FE;
+  --brass:     #F2A31D;
+  --brass-pale:#FDF0D8;
+  --clay:      #EF4A5C;
+  --clay-pale: #FDE3E6;
+  --sunset:    #FF6B4A;
+  --sunset-pale:#FFE6DE;
+  --berry:     #E23E93;
+  --berry-pale:#FBE1F0;
+  --linen:     #F5F6EE;
+  --paper:     #FFFFFF;
+  --ink:       #1B2119;
+  --ink-soft:  #626B5C;
+  --line:      #E1E4D7;
+  --radius:    16px;
+  --shadow:    0 1px 2px rgba(20,30,20,.05), 0 10px 26px -10px rgba(20,30,20,.16);
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+html[data-theme="dark"]{
+  --pine:      #0B1A14;
+  --linen:     #12161C;
+  --paper:     #1B212B;
+  --ink:       #ECEFE6;
+  --ink-soft:  #98A296;
+  --line:      #2B3239;
+  --moss-pale: #163025;
+  --dusk-pale: #182238;
+  --heather-pale:#241E3A;
+  --brass-pale:#332911;
+  --clay-pale: #351A1E;
+  --sunset-pale:#3A2015;
+  --berry-pale:#341227;
+  --shadow:    0 1px 2px rgba(0,0,0,.3), 0 12px 30px -10px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{position:relative; overflow-x:hidden;}
+.bg-blob{position:fixed; border-radius:50%; filter:blur(70px); opacity:.35; z-index:0; pointer-events:none;}
+html[data-theme="dark"] .bg-blob{opacity:.18;}
+.blob-1{width:480px;height:480px; background:var(--moss); top:-160px; left:180px;}
+.blob-2{width:420px;height:420px; background:var(--heather); bottom:-140px; right:-80px;}
+.blob-3{width:360px;height:360px; background:var(--sunset); top:40%; right:20%;}
+.shell, .toast-wrap, .overlay, .modal-center, .config-banner{position:relative; z-index:1;}
+body{
+  background:var(--linen);
+  color:var(--ink);
+  font-family:var(--font-body);
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+h1,h2,h3,.display{font-family:var(--font-display);letter-spacing:-0.01em;}
+code,.mono{font-family:var(--font-mono);}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;}
+::selection{background:var(--moss);color:#fff;}
+a{color:inherit;}
+
+/* ============================================================================
+   LAYOUT SHELL
+   ============================================================================ */
+.shell{display:flex;min-height:100vh;}
+
+.sidebar{
+  width:236px; flex-shrink:0;
+  background:linear-gradient(190deg,#123024 0%, #0E4A34 55%, #0E7A4F 130%);
+  color:#EAF1EB;
+  padding:22px 14px;
+  display:flex; flex-direction:column; gap:4px;
+  position:sticky; top:0; height:100vh; overflow-y:auto;
+}
+.brand{
+  display:flex; align-items:center; gap:10px;
+  padding:6px 10px 22px 10px;
+}
+.brand .mark{
+  width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(155deg,var(--sunset),var(--berry));
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:700;font-size:15px;color:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,.3);
+  flex-shrink:0;
+}
+.brand .txt{line-height:1.15;}
+.brand .txt b{display:block;font-family:var(--font-display);font-size:14.5px;font-weight:700;}
+.brand .txt span{display:block;font-size:11px;color:#9FB3A2;}
+
+.navgroup{margin-top:10px;}
+.navgroup-label{
+  font-size:10.5px; text-transform:uppercase; letter-spacing:.08em;
+  color:#7C9080; padding:10px 12px 6px;
+}
+.navitem{
+  display:flex; align-items:center; gap:10px;
+  padding:9px 12px; border-radius:9px;
+  font-size:13.5px; font-weight:500; color:#CBDACD;
+  border:none; background:transparent; width:100%; text-align:left;
+  transition:background .12s, color .12s;
+}
+.navitem .ico{width:17px;text-align:center;font-size:14px;opacity:.85;}
+.navitem:hover{background:rgba(255,255,255,.08); color:#fff;}
+.navitem.active{background:linear-gradient(100deg,var(--sunset),var(--berry)); color:#fff; box-shadow:0 4px 14px -4px rgba(226,62,147,.55);}
+.navitem .badge{
+  margin-left:auto; font-family:var(--font-mono); font-size:10.5px;
+  background:rgba(255,255,255,.12); padding:1px 6px; border-radius:20px;
+}
+
+.sidebar-foot{margin-top:auto; padding:12px 10px 4px; font-size:11px; color:#6E8272;}
+.dot-status{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;}
+.dot-status.on{background:#6FCF97;}
+.dot-status.off{background:#E0715A;}
+
+.main{flex:1; min-width:0; display:flex; flex-direction:column;}
+.topbar{
+  display:flex; align-items:center; gap:14px;
+  padding:16px 28px; background:color-mix(in srgb, var(--linen) 85%, transparent); backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--line); position:sticky; top:0; z-index:20;
+}
+.topbar h1{font-size:19px; margin:0; font-weight:700;}
+.topbar .sub{font-size:12px; color:var(--ink-soft); margin-top:1px;}
+.topbar-actions{margin-left:auto; display:flex; gap:8px; align-items:center;}
+.hamburger{display:none; background:none;border:none;font-size:20px;color:var(--pine);padding:4px 8px;}
+.icon-btn{
+  position:relative; width:36px; height:36px; border-radius:10px; border:1px solid var(--line);
+  background:var(--paper); font-size:15px; display:flex; align-items:center; justify-content:center;
+  box-shadow:var(--shadow); color:var(--ink);
+}
+.bell-dot{position:absolute; top:6px; right:6px; width:7px; height:7px; border-radius:50%; background:var(--clay); box-shadow:0 0 0 2px var(--paper);}
+
+.content{padding:24px 28px 60px; flex:1;}
+.view{display:none; animation:fadein .25s ease;}
+.view.active{display:block;}
+@keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+
+/* ============================================================================
+   BUTTONS / INPUTS
+   ============================================================================ */
+.btn{
+  display:inline-flex; align-items:center; gap:7px;
+  padding:9px 15px; border-radius:9px; border:1px solid transparent;
+  font-size:13px; font-weight:600; background:var(--paper); color:var(--ink);
+  border-color:var(--line); box-shadow:var(--shadow); transition:transform .08s, box-shadow .12s;
+}
+.btn:hover{transform:translateY(-1px);}
+.btn:active{transform:translateY(0);}
+.btn.primary{background:var(--moss); color:#fff; border-color:var(--moss);}
+.btn.danger{background:var(--clay); color:#fff; border-color:var(--clay);}
+.btn.ghost{background:transparent; box-shadow:none; border-color:var(--line);}
+.btn.sm{padding:6px 11px; font-size:12px;}
+.btn:disabled{opacity:.5; cursor:not-allowed; transform:none;}
+
+.field{margin-bottom:13px;}
+.field label{display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px; text-transform:uppercase; letter-spacing:.03em;}
+.field input, .field select, .field textarea{
+  width:100%; padding:9px 11px; border-radius:8px; border:1px solid var(--line);
+  background:var(--paper); font-size:13.5px; color:var(--ink);
+}
+.field textarea{resize:vertical; min-height:60px;}
+.field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--moss); outline-offset:1px;}
+.field-row{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+
+/* ============================================================================
+   KPI CARDS
+   ============================================================================ */
+.kpi-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px;}
+.kpi{
+  background:var(--paper); border-radius:var(--radius); padding:18px 20px;
+  box-shadow:var(--shadow); border:1px solid var(--line); position:relative; overflow:hidden;
+}
+.kpi::before{content:"";position:absolute; inset:0 0 auto 0; height:4px; background:var(--moss);}
+.kpi.dusk::before{background:var(--dusk);}
+.kpi.heather::before{background:var(--heather);}
+.kpi.brass::before{background:var(--brass);}
+.kpi.clay::before{background:var(--clay);}
+.kpi .ico-badge{
+  width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  font-size:16px; margin-bottom:10px; background:var(--moss-pale); color:var(--moss);
+}
+.kpi.dusk .ico-badge{background:var(--dusk-pale); color:var(--dusk);}
+.kpi.heather .ico-badge{background:var(--heather-pale); color:var(--heather);}
+.kpi.brass .ico-badge{background:var(--brass-pale); color:var(--brass);}
+.kpi.clay .ico-badge{background:var(--clay-pale); color:var(--clay);}
+.kpi .lbl{font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); font-weight:600;}
+.kpi .val{font-family:var(--font-display); font-size:28px; font-weight:700; margin-top:5px;}
+.kpi .sub{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+
+/* ============================================================================
+   CARD / PANEL
+   ============================================================================ */
+.panel{background:var(--paper); border-radius:var(--radius); border:1px solid var(--line); box-shadow:var(--shadow); padding:20px 22px; margin-bottom:20px;}
+.panel-head{display:flex; align-items:center; gap:10px; margin-bottom:16px;}
+.panel-head h2{font-size:16px; margin:0; font-weight:700;}
+.panel-head .cnt{font-family:var(--font-mono); font-size:11.5px; color:var(--ink-soft); background:var(--linen); padding:2px 8px; border-radius:20px;}
+.panel-head .spacer{flex:1;}
+
+/* ============================================================================
+   MAP / SPOT GRID  (signature element)
+   ============================================================================ */
+.zone-block{margin-bottom:26px;}
+.zone-head{display:flex; align-items:baseline; gap:10px; margin-bottom:10px;}
+.zone-head .swatch{width:11px;height:11px;border-radius:3px;}
+.zone-head h3{font-size:14.5px; margin:0; font-weight:700;}
+.zone-head .cap{font-size:12px; color:var(--ink-soft); font-family:var(--font-mono);}
+.spot-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(122px,1fr)); gap:10px;}
+.spot-chip{
+  border-radius:11px; padding:11px 12px; cursor:pointer; text-align:left;
+  border:1.5px solid var(--line); background:var(--paper);
+  transition:transform .1s, box-shadow .1s; position:relative; overflow:hidden;
+}
+.spot-chip:hover{transform:translateY(-2px); box-shadow:var(--shadow);}
+.spot-chip .code{font-family:var(--font-mono); font-weight:600; font-size:12.5px; opacity:.75;}
+.spot-chip .who{font-size:12.5px; font-weight:600; margin-top:5px; line-height:1.25; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.spot-chip .cnt{font-size:10.5px; color:var(--ink-soft); margin-top:4px;}
+.spot-chip.libre{background:var(--linen); border-style:dashed;}
+.spot-chip.libre .who{color:#9AA394; font-weight:500;}
+.spot-chip.occupied.p{background:var(--moss-pale); border-color:var(--moss);}
+.spot-chip.occupied.a{background:var(--dusk-pale); border-color:var(--dusk);}
+.spot-chip.occupied.c{background:var(--heather-pale); border-color:var(--heather);}
+.spot-chip.occupied.park{background:var(--brass-pale); border-color:var(--brass);}
+.spot-chip.personnel{background:#EDEDED; border-color:#B7B7B7; border-style:dashed;}
+
+/* ============================================================================
+   TABLE
+   ============================================================================ */
+.table-wrap{overflow-x:auto; border-radius:12px; border:1px solid var(--line);}
+.table-wrap table{width:100%; border-collapse:collapse; font-size:13px; min-width:760px;}
+thead th{
+  background:var(--pine); color:#fff; text-align:left; padding:11px 12px;
+  font-size:11px; text-transform:uppercase; letter-spacing:.04em; font-weight:600;
+  position:sticky; top:0;
+}
+tbody td{padding:11px 12px; border-bottom:1px solid var(--line);}
+tbody tr{cursor:pointer; transition:background .1s;}
+tbody tr:hover{background:var(--moss-pale);}
+tbody tr:nth-child(even){background:color-mix(in srgb, var(--linen) 55%, var(--paper));}
+tbody tr:nth-child(even):hover{background:var(--moss-pale);}
+.badge{display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700;}
+.badge.Confirmee{background:var(--moss-pale); color:var(--moss);}
+.badge.Expiree{background:#EAEAEA; color:#8A8A8A;}
+.badge.Annulee, .badge.Refusee{background:var(--clay-pale); color:var(--clay);}
+.badge.Oui{background:var(--moss-pale); color:var(--moss);}
+.badge.Non{background:var(--linen); color:var(--ink-soft);}
+
+/* ============================================================================
+   MODAL / SIDE PANEL
+   ============================================================================ */
+.overlay{position:fixed; inset:0; background:rgba(20,26,20,.45); display:none; align-items:stretch; justify-content:flex-end; z-index:100;}
+.overlay.open{display:flex;}
+.drawer{
+  width:420px; max-width:92vw; background:var(--paper); height:100%;
+  padding:26px 26px 30px; overflow-y:auto; box-shadow:-14px 0 40px rgba(0,0,0,.18);
+  animation:slidein .22s ease;
+}
+@keyframes slidein{from{transform:translateX(24px); opacity:.4;} to{transform:none; opacity:1;}}
+.drawer-head{display:flex; align-items:flex-start; gap:10px; margin-bottom:18px;}
+.drawer-head h2{font-size:18px; margin:0;}
+.drawer-head .x{margin-left:auto; background:none; border:none; font-size:20px; color:var(--ink-soft); line-height:1;}
+.drawer-foot{display:flex; gap:8px; margin-top:18px; padding-top:16px; border-top:1px solid var(--line);}
+
+.modal-center{position:fixed; inset:0; background:rgba(20,26,20,.45); display:none; align-items:center; justify-content:center; z-index:100; padding:20px;}
+.modal-center.open{display:flex;}
+.modal-box{width:460px; max-width:100%; background:var(--paper); border-radius:16px; padding:24px 26px; box-shadow:0 20px 60px rgba(0,0,0,.25); max-height:90vh; overflow-y:auto;}
+
+/* ============================================================================
+   TOAST
+   ============================================================================ */
+.search-box{width:560px; padding:0; overflow:hidden;}
+.search-input{width:100%; border:none; padding:20px 22px; font-size:17px; font-family:var(--font-display); outline:none; background:var(--paper); color:var(--ink); border-bottom:1px solid var(--line);}
+.search-results{max-height:380px; overflow-y:auto;}
+.search-item{display:flex; align-items:center; gap:12px; padding:13px 22px; cursor:pointer; border-bottom:1px solid var(--line);}
+.search-item:hover{background:var(--moss-pale);}
+.search-item .si-ico{width:30px;height:30px;border-radius:8px;background:var(--linen);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.search-item .si-txt b{display:block; font-size:13.5px;}
+.search-item .si-txt span{font-size:11.5px; color:var(--ink-soft);}
+
+@keyframes confettiFall{ to{ transform:translateY(100vh) rotate(360deg); opacity:0; } }
+#confettiLayer{position:fixed; inset:0; pointer-events:none; z-index:300; overflow:hidden;}
+.confetti-piece{position:absolute; top:-14px; width:9px; height:9px; border-radius:2px; animation:confettiFall linear forwards;}
+
+@media print{
+  body *{visibility:hidden;}
+  #printModal, #printModal *{visibility:visible;}
+  #printModal{position:absolute; inset:0; background:#fff !important; padding:20px;}
+  .no-print{display:none !important;}
+  .modal-box{box-shadow:none; width:100% !important;}
+}
+
+.toast-wrap{position:fixed; bottom:20px; right:20px; z-index:200; display:flex; flex-direction:column; gap:8px;}
+.toast{
+  background:var(--pine); color:#fff; padding:12px 16px; border-radius:10px; font-size:13px;
+  box-shadow:0 10px 28px rgba(0,0,0,.25); display:flex; align-items:center; gap:8px;
+  animation:toastin .2s ease;
+}
+.toast.err{background:var(--clay);}
+@keyframes toastin{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+
+/* ============================================================================
+   MISC
+   ============================================================================ */
+.empty{padding:40px 10px; text-align:center; color:var(--ink-soft);}
+.empty .big{font-size:32px; margin-bottom:8px;}
+.tabs{display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; margin-bottom:18px;}
+.tab{padding:9px 15px; border-radius:9px; border:1px solid var(--line); background:var(--paper); font-size:13px; font-weight:600; white-space:nowrap;}
+.tab.active{background:var(--pine); color:#fff; border-color:var(--pine);}
+.searchbar{position:relative; max-width:320px;}
+.searchbar input{padding-left:32px;}
+.searchbar .ic{position:absolute; left:11px; top:50%; transform:translateY(-50%); opacity:.5; font-size:13px;}
+.filter-row{display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center;}
+.chip-toggle{display:flex; gap:6px; flex-wrap:wrap;}
+.chip-toggle button{padding:6px 12px; border-radius:20px; border:1px solid var(--line); background:var(--paper); font-size:12px; font-weight:600; color:var(--ink-soft);}
+.chip-toggle button.active{background:var(--pine); color:#fff; border-color:var(--pine);}
+.note-box{background:var(--linen); border-radius:10px; padding:12px 14px; font-size:12.5px; color:var(--ink-soft); line-height:1.5;}
+.alert-row{display:flex; gap:10px; align-items:flex-start; padding:12px 14px; border-radius:10px; background:var(--clay-pale); margin-bottom:8px; font-size:13px;}
+.alert-row .ic{color:var(--clay); font-size:15px;}
+.chart-card{background:var(--paper); border-radius:var(--radius); border:1px solid var(--line); box-shadow:var(--shadow); padding:20px 22px;}
+.config-banner{background:#3A2E12; color:#F4E4B8; padding:12px 20px; font-size:13px; display:flex; gap:10px; align-items:center;}
+.config-banner input{flex:1; padding:7px 10px; border-radius:6px; border:none; font-family:var(--font-mono); font-size:12px;}
+.config-banner button{padding:7px 12px; border-radius:6px; border:none; background:#F4E4B8; color:#3A2E12; font-weight:700; font-size:12px;}
+.checklist-item{display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--line); border-radius:10px; margin-bottom:8px; background:var(--paper);}
+.checklist-item .num{font-family:var(--font-mono); font-size:11px; color:var(--ink-soft); background:var(--linen); width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+.checklist-item input[type=checkbox]{width:18px; height:18px; flex-shrink:0;}
+.checklist-item.done{opacity:.55; text-decoration:line-through;}
+
+.cal-track{display:flex; flex-direction:column; gap:10px;}
+.cal-row{display:grid; grid-template-columns:230px 1fr; gap:14px; align-items:center; cursor:pointer; padding:6px 8px; border-radius:8px;}
+.cal-row:hover{background:var(--linen);}
+.cal-name{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12.5px;}
+.cal-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.cal-sub{width:100%; font-size:11px; color:var(--ink-soft); padding-left:17px;}
+.cal-bar-wrap{position:relative; height:20px; background:var(--linen); border-radius:6px;}
+.cal-bar{position:absolute; top:2px; bottom:2px; border-radius:5px; opacity:.85;}
+.cal-axis{display:grid; grid-template-columns:230px repeat(5,1fr); font-size:10.5px; color:var(--ink-soft); margin-top:10px; padding:0 8px;}
+.cal-axis span{text-align:center;}
+.cal-axis span:first-child{text-align:left;}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+@media (max-width: 900px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  .field-row{grid-template-columns:1fr;}
+}
+@media (max-width: 760px){
+  .sidebar{
+    position:fixed; left:0; top:0; z-index:150; transform:translateX(-100%);
+    transition:transform .2s ease; width:230px;
+  }
+  .sidebar.open{transform:translateX(0); box-shadow:20px 0 40px rgba(0,0,0,.3);}
+  .hamburger{display:block;}
+  .content{padding:18px 14px 70px;}
+  .topbar{padding:12px 14px; flex-wrap:wrap;}
+  .hide-mobile{display:none !important;}
+  .kpi-grid{grid-template-columns:1fr 1fr;}
+  .kpi .val{font-size:24px;}
+  .drawer{width:100%;}
+  .search-box{width:94vw;}
+}
+</style>
+</head>
+<body>
+
+<div class="bg-blob blob-1"></div>
+<div class="bg-blob blob-2"></div>
+<div class="bg-blob blob-3"></div>
+
+<div id="configBanner" class="config-banner" style="display:none;">
+  <span>⚙️ Colle l'URL de ton Apps Script (Web App) pour connecter le site au Google Sheet :</span>
+  <input id="apiUrlInput" placeholder="https://script.google.com/macros/s/AKfycbwXQ4c5UQZXyuyWpzXUMwz7nbT-66Luu-AdpMDUTxkT7CewxSD4l4qTUGcWYdnSYwd1zw/exec">
+  <button onclick="saveApiUrl()">Connecter</button>
+</div>
+
+<div class="shell">
+  <!-- ============================ SIDEBAR ============================ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="mark">CJ</div>
+      <div class="txt"><b>Camping Jardin</b><span>Pukkelpop 2026</span></div>
+    </div>
+
+    <div class="navgroup">
+      <button class="navitem active" data-view="dashboard"><span class="ico">◆</span> Tableau de bord</button>
+      <button class="navitem" data-view="map"><span class="ico">▦</span> Carte du terrain</button>
+      <button class="navitem" data-view="reservations"><span class="ico">☰</span> Réservations <span class="badge" id="navResCount">–</span></button>
+      <button class="navitem" data-view="days"><span class="ico">▤</span> Jour par jour</button>
+      <button class="navitem" data-view="calendrier"><span class="ico">◫</span> Calendrier</button>
+      <button class="navitem" data-view="statistiques"><span class="ico">◔</span> Statistiques</button>
+      <button class="navitem" data-view="paiements"><span class="ico">€</span> Paiements</button>
+      <button class="navitem" data-view="checklist"><span class="ico">✓</span> Checklist accueil</button>
+    </div>
+
+    <div class="navgroup">
+      <div class="navgroup-label">Outils</div>
+      <button class="navitem" onclick="openSearch()"><span class="ico">⌕</span> Recherche rapide <span class="badge">⌘K</span></button>
+      <button class="navitem" onclick="toggleTheme()"><span class="ico">☾</span> Thème clair / sombre</button>
+      <button class="navitem" onclick="refreshAll(true)"><span class="ico">⟳</span> Actualiser</button>
+      <button class="navitem" onclick="exportCSV()"><span class="ico">⇩</span> Exporter CSV</button>
+      <button class="navitem" onclick="openPrintSheet()"><span class="ico">⎙</span> Fiche accueil du jour</button>
+    </div>
+
+    <div class="sidebar-foot">
+      <div><span class="dot-status off" id="statusDot"></span><span id="statusTxt">Non connecté</span></div>
+    </div>
+  </aside>
+
+  <!-- ============================ MAIN ============================ -->
+  <div class="main">
+    <div class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <div>
+        <h1 id="viewTitle">Tableau de bord</h1>
+        <div class="sub" id="viewSub">Vue d'ensemble de l'organisation</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn hide-mobile" onclick="openSearch()" title="Recherche rapide (⌘K)">⌕</button>
+        <button class="icon-btn" id="bellBtn" onclick="switchView('dashboard')" title="Alertes">🔔<span class="bell-dot" id="bellDot" style="display:none;"></span></button>
+        <button class="icon-btn hide-mobile" onclick="toggleTheme()" id="themeBtn" title="Thème">☾</button>
+        <button class="btn ghost sm hide-mobile" onclick="refreshAll(true)">⟳ Actualiser</button>
+        <button class="btn primary sm" onclick="openAddReservation()">+ <span class="hide-mobile">Nouvelle réservation</span></button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ===================== DASHBOARD ===================== -->
+      <section class="view active" id="view-dashboard">
+        <div class="kpi-grid">
+          <div class="kpi"><div class="ico-badge">🏕️</div><div class="lbl">Réservations confirmées</div><div class="val" id="kpiRes">–</div></div>
+          <div class="kpi dusk"><div class="ico-badge">👥</div><div class="lbl">Voyageurs</div><div class="val" id="kpiVoy">–</div></div>
+          <div class="kpi brass"><div class="ico-badge">💶</div><div class="lbl">Revenu confirmé</div><div class="val" id="kpiRev">–</div></div>
+          <div class="kpi clay"><div class="ico-badge">🅿️</div><div class="lbl">À encaisser sur place</div><div class="val" id="kpiEnc">–</div></div>
+        </div>
+
+        <div class="panel" id="alertsPanel" style="display:none;">
+          <div class="panel-head"><h2>Actions requises</h2></div>
+          <div id="alertsList"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="panel-head"><h2>Occupation par jour</h2><span class="cnt">Principale · Annexe · Caravanes · Parking</span></div>
+          <canvas id="occChart" height="90"></canvas>
+        </div>
+      </section>
+
+      <!-- ===================== MAP ===================== -->
+      <section class="view" id="view-map">
+        <div id="mapZones"></div>
+      </section>
+
+      <!-- ===================== RESERVATIONS ===================== -->
+      <section class="view" id="view-reservations">
+        <div class="filter-row">
+          <div class="searchbar"><span class="ic">⌕</span><input id="resSearch" placeholder="Rechercher un voyageur ou un ID..." oninput="renderReservations()"></div>
+          <div class="chip-toggle" id="statusFilter">
+            <button class="active" data-s="Tous">Tous</button>
+            <button data-s="Confirmee">Confirmée</button>
+            <button data-s="Expiree">Expirée</button>
+            <button data-s="Annulee">Annulée</button>
+            <button data-s="Refusee">Refusée</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Voyageur</th><th>Personnes</th><th>Arrivée</th><th>Départ</th>
+              <th>Statut</th><th>Parking</th><th>Revenu</th>
+            </tr></thead>
+            <tbody id="resTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===================== DAYS ===================== -->
+      <section class="view" id="view-days">
+        <div class="tabs" id="dayTabs"></div>
+        <div id="dayContent"></div>
+      </section>
+
+      <!-- ===================== CALENDRIER ===================== -->
+      <section class="view" id="view-calendrier">
+        <div class="panel">
+          <div class="panel-head"><h2>Arrivées & départs</h2><span class="cnt">20 → 24 août 2026</span></div>
+          <div id="calendrierBody"></div>
+        </div>
+      </section>
+
+      <!-- ===================== STATISTIQUES ===================== -->
+      <section class="view" id="view-statistiques">
+        <div class="kpi-grid" id="statKpis"></div>
+        <div style="display:grid; grid-template-columns:1.3fr 1fr; gap:18px;">
+          <div class="chart-card"><div class="panel-head"><h2>Revenu par jour d'arrivée</h2></div><canvas id="chartRevenue" height="110"></canvas></div>
+          <div class="chart-card"><div class="panel-head"><h2>Réservations par statut</h2></div><canvas id="chartStatus" height="110"></canvas></div>
+        </div>
+        <div class="chart-card" style="margin-top:18px;">
+          <div class="panel-head"><h2>Répartition par catégorie d'emplacement</h2></div>
+          <canvas id="chartCats" height="70"></canvas>
+        </div>
+      </section>
+
+      <!-- ===================== PAIEMENTS ===================== -->
+      <section class="view" id="view-paiements">
+        <div class="panel">
+          <div class="panel-head"><h2>Parking (5 € obligatoire)</h2><span class="cnt" id="parkCount">–</span></div>
+          <div class="note-box" style="margin-bottom:14px;">Clique sur <b>Accepter le parking</b> pour une réservation confirmée : ça passe automatiquement "Parking = Oui" dans le Google Sheet, qui calcule le montant (5 €) tout seul.</div>
+          <div id="paiementsList"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Remboursements</h2></div>
+          <div id="refundsList"></div>
+        </div>
+      </section>
+
+      <!-- ===================== CHECKLIST ===================== -->
+      <section class="view" id="view-checklist">
+        <div class="panel">
+          <div class="panel-head"><h2>Étapes à l'arrivée d'un campeur</h2></div>
+          <div id="checklistBody"></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================ DRAWER: reservation detail ============================ -->
+<div class="overlay" id="drawerOverlay" onclick="if(event.target===this) closeDrawer()">
+  <div class="drawer">
+    <div class="drawer-head">
+      <h2 id="drawerTitle">Réservation</h2>
+      <button class="x" onclick="closeDrawer()">✕</button>
+    </div>
+    <div id="drawerBody"></div>
+  </div>
+</div>
+
+<!-- ============================ MODAL: add reservation ============================ -->
+<div class="modal-center" id="addModal" onclick="if(event.target===this) closeAddModal()">
+  <div class="modal-box">
+    <div class="drawer-head"><h2>Nouvelle réservation</h2><button class="x" onclick="closeAddModal()">✕</button></div>
+    <div id="addForm"></div>
+  </div>
+</div>
+
+<!-- ============================ MODAL: assign spot ============================ -->
+<div class="modal-center" id="assignModal" onclick="if(event.target===this) closeAssignModal()">
+  <div class="modal-box">
+    <div class="drawer-head"><h2 id="assignTitle">Attribuer l'emplacement</h2><button class="x" onclick="closeAssignModal()">✕</button></div>
+    <div id="assignBody"></div>
+  </div>
+</div>
+
+<!-- ============================ SEARCH PALETTE ============================ -->
+<div class="modal-center" id="searchModal" onclick="if(event.target===this) closeSearch()">
+  <div class="modal-box search-box">
+    <input id="searchInput" class="search-input" placeholder="Rechercher un voyageur, un ID, un emplacement..." oninput="renderSearchResults()">
+    <div id="searchResults" class="search-results"></div>
+  </div>
+</div>
+
+<!-- ============================ PRINT SHEET ============================ -->
+<div class="modal-center" id="printModal" onclick="if(event.target===this) closePrintSheet()">
+  <div class="modal-box" style="width:640px;">
+    <div class="drawer-head no-print"><h2>Fiche accueil du jour</h2><button class="x" onclick="closePrintSheet()">✕</button></div>
+    <div class="tabs no-print" id="printDayTabs"></div>
+    <div id="printSheetBody"></div>
+    <div class="drawer-foot no-print"><button class="btn primary" onclick="window.print()">🖨️ Imprimer</button></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+<div id="confettiLayer"></div>
+
+<script>
+/* ============================================================================
+   CONFIG — colle ici l'URL de ton Apps Script Web App (voir SETUP_GUIDE.md)
+   ============================================================================ */
+const CONFIG = {
+  API_URL: "" // ex: "https://script.google.com/macros/s/AKfycb.../exec"
+};
+
+/* ============================================================================
+   STATIC MODEL
+   ============================================================================ */
+const CATS = [
+  {key:'P',    label:'Parcelle Principale', count:21, cls:'p',    swatch:'var(--moss)'},
+  {key:'A',    label:'Parcelle Annexe',     count:16, cls:'a',    swatch:'var(--dusk)'},
+  {key:'C',    label:'Caravanes / Campers', count:5,  cls:'c',    swatch:'var(--heather)'},
+  {key:'PARK', label:'Parking voitures',    count:7,  cls:'park', swatch:'var(--brass)'},
+];
+const DAYS = [
+  {key:'Jeudi_20',    label:'Jeudi 20',    date:'2026-08-20'},
+  {key:'Vendredi_21', label:'Vendredi 21', date:'2026-08-21'},
+  {key:'Samedi_22',   label:'Samedi 22',   date:'2026-08-22'},
+  {key:'Dimanche_23', label:'Dimanche 23', date:'2026-08-23'},
+  {key:'Lundi_24',    label:'Lundi 24',    date:'2026-08-24'},
+];
+const CHECKLIST_STEPS = [
+  "Vérifier le nom / la réservation",
+  "Vérifier le nombre de personnes et de tentes / véhicules",
+  "Indiquer le(s) numéro(s) d'emplacement (voir Carte du terrain)",
+  "Remettre le bracelet",
+  "Encaisser le parking si applicable (5 €)",
+  "Rembourser si applicable (voir Paiements)",
+  "Rappeler le règlement : pas de visiteurs, heures de calme, zones privées",
+  "Indiquer l'accès toilettes",
+  "Accompagner jusqu'à l'emplacement",
+];
+
+const FIELD_MAP = {
+  nom:"Voyageur", tel:"Telephone", personnes:"Personnes", arrivee:"Arrivee", depart:"Depart",
+  statut:"Statut", parking:"Parking (Oui/Non)", toilettes:"Toilettes",
+  options:"Options / Vehicule", revenu:"Revenu (EUR)", notes:"Notes / Demandes speciales"
+};
+
+/* ============================================================================
+   STATE
+   ============================================================================ */
+let STATE = { reservations: [], emplacements: [], currentDay: DAYS[0].key, loaded:false };
+
+function normRes(r){
+  return {
+    id: r["ID Reservation"], n:r["N"], nom:r["Voyageur"]||"", tel:r["Telephone"]||"",
+    personnes:Number(r["Personnes"]||0), arrivee:r["Arrivee"], depart:r["Depart"],
+    statut:r["Statut"]||"", parking:r["Parking (Oui/Non)"]||"Non",
+    montantParking:r["Montant parking (EUR)"]||0, toilettes:r["Toilettes"]||"",
+    options:r["Options / Vehicule"]||"", revenu:Number(r["Revenu (EUR)"]||0),
+    notes:r["Notes / Demandes speciales"]||""
+  };
+}
+function normEmp(e){
+  return { spot:e["Emplacement"], type:e["Type"], id:e["ID Reservation"]||"",
+    nom:e["Voyageur"]||"", personnes:e["Personnes"], arrivee:e["Arrivee"], depart:e["Depart"], statut:e["Statut"] };
+}
+
+/* ============================================================================
+   API
+   ============================================================================ */
+async function apiGet(){
+  const res = await fetch(CONFIG.API_URL, {method:'GET'});
+  const json = await res.json();
+  if(!json.ok) throw new Error(json.error||'Erreur API');
+  return json;
+}
+async function apiPost(action, payload){
+  const res = await fetch(CONFIG.API_URL, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({action, payload})
+  });
+  const json = await res.json();
+  if(!json.ok) throw new Error(json.error||'Erreur API');
+  return json.result;
+}
+
+async function refreshAll(showToast){
+  if(!CONFIG.API_URL){ document.getElementById('configBanner').style.display='flex'; return; }
+  try{
+    setStatus(true, 'Synchronisation…');
+    const data = await apiGet();
+    STATE.reservations = data.reservations.map(normRes);
+    STATE.emplacements = data.emplacements.map(normEmp);
+    STATE.loaded = true;
+    setStatus(true, 'Connecté');
+    renderAll();
+    if(showToast) toast('Données actualisées');
+  }catch(err){
+    setStatus(false, 'Erreur de connexion');
+    toast('Erreur: '+err.message, true);
+  }
+}
+function setStatus(ok, txt){
+  document.getElementById('statusDot').className = 'dot-status '+(ok?'on':'off');
+  document.getElementById('statusTxt').textContent = txt;
+}
+
+/* ============================================================================
+   TOAST
+   ============================================================================ */
+function toast(msg, isErr){
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast'+(isErr?' err':'');
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(()=>t.remove(), 3200);
+}
+
+/* ============================================================================
+   NAVIGATION
+   ============================================================================ */
+const VIEW_META = {
+  dashboard:{title:'Tableau de bord', sub:"Vue d'ensemble de l'organisation"},
+  map:{title:'Carte du terrain', sub:"Clique un emplacement pour l'attribuer ou le libérer"},
+  reservations:{title:'Réservations', sub:"Toutes les réservations, modifiables en direct"},
+  days:{title:'Jour par jour', sub:"Qui est présent, jour par jour"},
+  calendrier:{title:'Calendrier', sub:"Vue chronologique des arrivées et départs"},
+  statistiques:{title:'Statistiques', sub:"Revenus, statuts et répartition en un coup d'œil"},
+  paiements:{title:'Paiements', sub:"Parkings à encaisser et remboursements"},
+  checklist:{title:'Checklist accueil', sub:"Étapes à suivre à chaque arrivée"},
+};
+document.querySelectorAll('.navitem[data-view]').forEach(btn=>{
+  btn.addEventListener('click', ()=>switchView(btn.dataset.view));
+});
+function switchView(key){
+  document.querySelectorAll('.navitem[data-view]').forEach(b=>b.classList.toggle('active', b.dataset.view===key));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+key).classList.add('active');
+  document.getElementById('viewTitle').textContent = VIEW_META[key].title;
+  document.getElementById('viewSub').textContent = VIEW_META[key].sub;
+  document.getElementById('sidebar').classList.remove('open');
+  if(key==='map') safe(renderMap);
+  if(key==='days') safe(renderDays);
+  if(key==='paiements') safe(renderPaiements);
+  if(key==='checklist') safe(renderChecklist);
+  if(key==='calendrier') safe(renderCalendrier);
+  if(key==='statistiques') safe(renderStatistiques);
+}
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); }
+
+/* ============================================================================
+   THEME
+   ============================================================================ */
+function toggleTheme(){
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme')==='dark';
+  html.setAttribute('data-theme', isDark?'light':'dark');
+  document.getElementById('themeBtn').textContent = isDark ? '☾' : '☀';
+}
+
+/* ============================================================================
+   CONFETTI
+   ============================================================================ */
+function confetti(){
+  const colors = ['#FF6B4A','#1E9D5B','#2F6FED','#8B5CF6','#F2A31D','#E23E93'];
+  const layer = document.getElementById('confettiLayer');
+  for(let i=0;i<26;i++){
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.left = (Math.random()*100)+'vw';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.animationDuration = (1.6+Math.random()*1.2)+'s';
+    p.style.opacity = 0.85;
+    layer.appendChild(p);
+    setTimeout(()=>p.remove(), 3000);
+  }
+}
+
+/* ============================================================================
+   SEARCH PALETTE
+   ============================================================================ */
+function openSearch(){
+  document.getElementById('searchModal').classList.add('open');
+  document.getElementById('searchInput').value='';
+  document.getElementById('searchInput').focus();
+  renderSearchResults();
+}
+function closeSearch(){ document.getElementById('searchModal').classList.remove('open'); }
+function renderSearchResults(){
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  let items = [];
+  STATE.reservations.forEach(r=>{
+    if(!q || r.nom.toLowerCase().includes(q) || r.id.toLowerCase().includes(q)){
+      items.push({ico:'🏕️', title:r.nom, sub:r.id+' · '+r.statut, action:()=>{closeSearch(); switchView('reservations'); setTimeout(()=>openReservation(r.id),150);}});
+    }
+  });
+  if(q){
+    STATE.emplacements.forEach(e=>{
+      if(e.spot.toLowerCase().includes(q)){
+        items.push({ico:'▦', title:e.spot, sub:e.id?('Occupé · '+e.nom):'Libre', action:()=>{closeSearch(); switchView('map');}});
+      }
+    });
+  }
+  items = items.slice(0,12);
+  const wrap = document.getElementById('searchResults');
+  if(!items.length){ wrap.innerHTML = '<div class="empty">Aucun résultat</div>'; return; }
+  wrap.innerHTML = items.map((it,i)=>`
+    <div class="search-item" onclick="__searchActions[${i}]()">
+      <div class="si-ico">${it.ico}</div>
+      <div class="si-txt"><b>${esc(it.title)}</b><span>${esc(it.sub)}</span></div>
+    </div>`).join('');
+  window.__searchActions = items.map(it=>it.action);
+}
+document.addEventListener('keydown', e=>{
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openSearch(); }
+  if(e.key==='Escape'){ closeSearch(); }
+});
+
+/* ============================================================================
+   CSV EXPORT
+   ============================================================================ */
+function exportCSV(){
+  const headers = ['ID','Voyageur','Telephone','Personnes','Arrivee','Depart','Statut','Parking','Revenu','Notes'];
+  const rows = STATE.reservations.map(r=>[r.id,r.nom,r.tel,r.personnes,r.arrivee,r.depart,r.statut,r.parking,r.revenu,r.notes]);
+  let csv = headers.join(';')+'\n' + rows.map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(';')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'reservations_camping.csv';
+  a.click();
+  toast('Export CSV téléchargé');
+}
+
+/* ============================================================================
+   PRINT SHEET
+   ============================================================================ */
+let printDay = DAYS[0].key;
+function openPrintSheet(){
+  document.getElementById('printModal').classList.add('open');
+  document.getElementById('printDayTabs').innerHTML = DAYS.map(d=>`<button class="tab ${d.key===printDay?'active':''}" onclick="setPrintDay('${d.key}')">${d.label}</button>`).join('');
+  renderPrintSheet();
+}
+function closePrintSheet(){ document.getElementById('printModal').classList.remove('open'); }
+function setPrintDay(k){ printDay = k; openPrintSheet(); }
+function renderPrintSheet(){
+  const day = DAYS.find(d=>d.key===printDay);
+  const rows = STATE.emplacements.filter(e=>e.id && e.id!=='PERSONNEL' && isOccupiedOn(e, day.date))
+    .sort((a,b)=>a.spot.localeCompare(b.spot,undefined,{numeric:true}));
+  document.getElementById('printSheetBody').innerHTML = `
+    <h2 style="margin:6px 0 2px;">Fiche accueil — ${day.label} août 2026</h2>
+    <p style="color:var(--ink-soft); font-size:12.5px; margin-top:0;">${rows.length} emplacement(s) occupé(s)</p>
+    <table style="width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed;">
+      <thead><tr style="border-bottom:2px solid #222;">
+        <th style="text-align:left;padding:6px; width:18%; overflow:hidden;">Emplacement</th>
+        <th style="text-align:left;padding:6px; overflow:hidden;">Voyageur</th>
+        <th style="text-align:left;padding:6px; width:12%; overflow:hidden;">Pers.</th>
+        <th style="text-align:left;padding:6px; width:18%; overflow:hidden;">Bracelet</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(e=>`<tr style="border-bottom:1px solid #ddd;">
+          <td style="padding:6px;font-weight:700;overflow:hidden;">${e.spot}</td>
+          <td style="padding:6px;overflow:hidden;word-break:break-word;">${esc(e.nom)}</td>
+          <td style="padding:6px;overflow:hidden;">${e.personnes||''}</td>
+          <td style="padding:6px;overflow:hidden;font-size:16px;">☐</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    ${!rows.length ? '<div class="empty">Aucun emplacement occupé ce jour-là.</div>' : ''}
+  `;
+}
+
+/* ============================================================================
+   CALENDRIER
+   ============================================================================ */
+function renderCalendrier(){
+  const confirmed = STATE.reservations.filter(r=>r.statut==='Confirmee').sort((a,b)=>a.arrivee.localeCompare(b.arrivee));
+  const wrap = document.getElementById('calendrierBody');
+  if(!confirmed.length){ wrap.innerHTML = '<div class="empty">Aucune réservation confirmée.</div>'; return; }
+  wrap.innerHTML = `<div class="cal-track">` + confirmed.map(r=>{
+    const spots = STATE.emplacements.filter(e=>e.id===r.id).map(e=>e.spot);
+    const catKey = spots[0] ? spotPrefix(spots[0]) : 'P';
+    const cat = CATS.find(c=>c.key===catKey) || CATS[0];
+    return `<div class="cal-row" onclick="switchView('reservations');setTimeout(()=>openReservation('${r.id}'),150)">
+      <div class="cal-name"><span class="cal-dot" style="background:${cat.swatch}"></span><b>${esc(r.nom)}</b><span class="cal-sub">${r.personnes} pers. · ${spots.join(', ')||'non attribué'}</span></div>
+      <div class="cal-bar-wrap"><div class="cal-bar" style="left:${barLeft(r.arrivee)}%; width:${barWidth(r.arrivee,r.depart)}%; background:${cat.swatch}"></div></div>
+    </div>`;
+  }).join('') + `</div>
+  <div class="cal-axis"><span></span>${DAYS.map(d=>`<span>${d.label}</span>`).join('')}</div>`;
+}
+function barLeft(arrivee){
+  const idx = DAYS.findIndex(d=>d.date===arrivee);
+  return Math.max(0, idx)*20;
+}
+function barWidth(arrivee, depart){
+  const i1 = Math.max(0, DAYS.findIndex(d=>d.date===arrivee));
+  const i2 = DAYS.findIndex(d=>d.date===depart);
+  const end = i2===-1?4:i2;
+  return Math.max(1,(end-i1+1))*20 - 4;
+}
+
+/* ============================================================================
+   STATISTIQUES
+   ============================================================================ */
+let chartRevenue=null, chartStatus=null, chartCats=null;
+function renderStatistiques(){
+  const confirmed = STATE.reservations.filter(r=>r.statut==='Confirmee');
+  const kpis = document.getElementById('statKpis');
+  const avgPersonnes = confirmed.length ? (confirmed.reduce((s,r)=>s+r.personnes,0)/confirmed.length).toFixed(1) : 0;
+  const avgRevenu = confirmed.length ? (confirmed.reduce((s,r)=>s+r.revenu,0)/confirmed.length).toFixed(2) : 0;
+  const withParking = confirmed.filter(r=>r.parking==='Oui').length;
+  kpis.innerHTML = `
+    <div class="kpi"><div class="ico-badge">👨‍👩‍👧</div><div class="lbl">Moyenne pers./résa</div><div class="val">${avgPersonnes}</div></div>
+    <div class="kpi brass"><div class="ico-badge">💶</div><div class="lbl">Revenu moyen/résa</div><div class="val">${avgRevenu} €</div></div>
+    <div class="kpi heather"><div class="ico-badge">🅿️</div><div class="lbl">Avec parking</div><div class="val">${withParking}</div></div>
+    <div class="kpi dusk"><div class="ico-badge">▦</div><div class="lbl">Emplacements libres</div><div class="val">${49 - STATE.emplacements.filter(e=>e.id).length}</div></div>
+  `;
+  safe(()=>{
+    if(typeof Chart==='undefined') throw new Error('offline');
+    const byDay = DAYS.map(d=>confirmed.filter(r=>r.arrivee===d.date).reduce((s,r)=>s+r.revenu,0));
+    if(chartRevenue) chartRevenue.destroy();
+    chartRevenue = new Chart(document.getElementById('chartRevenue'), {
+      type:'line',
+      data:{labels:DAYS.map(d=>d.label), datasets:[{label:'Revenu (€)', data:byDay, borderColor:'#FF6B4A', backgroundColor:'rgba(255,107,74,.15)', fill:true, tension:.35}]},
+      options:{plugins:{legend:{display:false}}, scales:{y:{grid:{color:'#eee'}}, x:{grid:{display:false}}}}
+    });
+    const statuses = ['Confirmee','Expiree','Annulee','Refusee'];
+    const counts = statuses.map(s=>STATE.reservations.filter(r=>r.statut===s).length);
+    if(chartStatus) chartStatus.destroy();
+    chartStatus = new Chart(document.getElementById('chartStatus'), {
+      type:'doughnut',
+      data:{labels:statuses, datasets:[{data:counts, backgroundColor:['#1E9D5B','#B9BEC2','#EF4A5C','#F2A31D']}]},
+      options:{plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:11}}}}}
+    });
+    const catCounts = CATS.map(c=>STATE.emplacements.filter(e=>spotPrefix(e.spot)===c.key && e.id).length);
+    if(chartCats) chartCats.destroy();
+    chartCats = new Chart(document.getElementById('chartCats'), {
+      type:'bar',
+      data:{labels:CATS.map(c=>c.label), datasets:[{label:'Occupés', data:catCounts, backgroundColor:['#1E9D5B','#2F6FED','#8B5CF6','#F2A31D']}]},
+      options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#eee'}}}}
+    });
+  });
+}
+
+/* ============================================================================
+   RENDER: DASHBOARD
+   ============================================================================ */
+let occChart = null;
+function renderDashboard(){
+  const confirmed = STATE.reservations.filter(r=>r.statut==='Confirmee');
+  document.getElementById('kpiRes').textContent = confirmed.length;
+  document.getElementById('kpiVoy').textContent = confirmed.reduce((s,r)=>s+r.personnes,0);
+  document.getElementById('kpiRev').textContent = confirmed.reduce((s,r)=>s+r.revenu,0).toFixed(2)+' €';
+  const parkingSum = confirmed.filter(r=>r.parking==='Oui').reduce((s,r)=>s+(Number(r.montantParking)||5),0);
+  document.getElementById('kpiEnc').textContent = parkingSum+' €';
+
+  // alerts
+  const alerts = [];
+  confirmed.forEach(r=>{
+    if(/rembourser/i.test(r.notes) && !/\[REMBOURSE\]/.test(r.notes)) alerts.push('Rembourser '+r.nom+' (voir notes)');
+  });
+  const freeSpotsCount = CATS.reduce((s,c)=>s+c.count,0) - STATE.emplacements.filter(e=>e.id).length;
+  const alertsPanel = document.getElementById('alertsPanel');
+  if(alerts.length){
+    alertsPanel.style.display='block';
+    document.getElementById('alertsList').innerHTML = alerts.map(a=>`<div class="alert-row"><span class="ic">⚠</span><span>${esc(a)}</span></div>`).join('');
+  } else { alertsPanel.style.display='none'; }
+
+  // chart
+  const labels = DAYS.map(d=>d.label);
+  const dataP = DAYS.map(d=>occForDay(d.date,'P'));
+  const dataA = DAYS.map(d=>occForDay(d.date,'A'));
+  const dataC = DAYS.map(d=>occForDay(d.date,'C'));
+  const dataPK= DAYS.map(d=>occForDay(d.date,'PARK'));
+  try{
+    const ctx = document.getElementById('occChart');
+    if(occChart) occChart.destroy();
+    if(typeof Chart === 'undefined') throw new Error('Chart.js indisponible (hors-ligne ?)');
+    occChart = new Chart(ctx, {
+      type:'bar',
+      data:{ labels, datasets:[
+        {label:'Principale', data:dataP, backgroundColor:'#3D7A45'},
+        {label:'Annexe', data:dataA, backgroundColor:'#1E3A5F'},
+        {label:'Caravanes', data:dataC, backgroundColor:'#5B4B8A'},
+        {label:'Parking', data:dataPK, backgroundColor:'#A8791F'},
+      ]},
+      options:{
+        responsive:true, plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:11}}}},
+        scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:{color:'#E4E7DD'}} }
+      }
+    });
+  }catch(err){
+    document.getElementById('occChart').outerHTML = '<div class="empty">Graphique indisponible ('+esc(err.message)+')</div>';
+  }
+}
+function occForDay(dateStr, prefix){
+  const spots = STATE.emplacements.filter(e=>spotPrefix(e.spot)===prefix);
+  let c=0;
+  spots.forEach(e=>{ if(isOccupiedOn(e, dateStr)) c++; });
+  return c;
+}
+function spotPrefix(spot){
+  if(spot.startsWith('PARK')) return 'PARK';
+  return spot.replace(/[0-9]/g,'');
+}
+function isOccupiedOn(emp, dateStr){
+  if(!emp.id) return false;
+  if(emp.id==='PERSONNEL') return true;
+  if(emp.statut!=='Confirmee') return false;
+  if(!emp.arrivee || !emp.depart) return false;
+  return emp.arrivee<=dateStr && emp.depart>=dateStr;
+}
+
+/* ============================================================================
+   RENDER: MAP
+   ============================================================================ */
+function renderMap(){
+  const wrap = document.getElementById('mapZones');
+  wrap.innerHTML = CATS.map(cat=>{
+    const spots = STATE.emplacements.filter(e=>spotPrefix(e.spot)===cat.key)
+      .sort((a,b)=> parseInt(a.spot.replace(/\D/g,''))-parseInt(b.spot.replace(/\D/g,'')));
+    const occCount = spots.filter(e=>e.id).length;
+    const chips = spots.map(e=>{
+      const personnel = e.id==='PERSONNEL';
+      const occupied = !!e.id;
+      const cls = personnel ? 'personnel' : (occupied ? 'occupied '+cat.cls : 'libre');
+      const who = personnel ? 'Usage personnel' : (occupied ? esc(e.nom) : 'Libre');
+      const sub = occupied && !personnel ? (e.personnes?e.personnes+' pers.':'') : '';
+      return `<button class="spot-chip ${cls}" onclick="openAssign('${e.spot}')">
+        <div class="code">${e.spot}</div>
+        <div class="who">${who}</div>
+        ${sub?`<div class="cnt">${sub}</div>`:''}
+      </button>`;
+    }).join('');
+    return `<div class="zone-block">
+      <div class="zone-head">
+        <span class="swatch" style="background:${cat.swatch}"></span>
+        <h3>${cat.label}</h3>
+        <span class="cap">${occCount}/${cat.count} occupés</span>
+      </div>
+      <div class="spot-grid">${chips}</div>
+    </div>`;
+  }).join('');
+}
+
+function openAssign(spot){
+  const emp = STATE.emplacements.find(e=>e.spot===spot);
+  document.getElementById('assignTitle').textContent = 'Emplacement '+spot;
+  const confirmed = STATE.reservations.filter(r=>r.statut==='Confirmee');
+  const options = confirmed.map(r=>`<option value="${r.id}" ${emp.id===r.id?'selected':''}>${esc(r.nom)} (${r.personnes}p · ${r.arrivee}→${r.depart})</option>`).join('');
+  const isPersonnel = spot.startsWith('PARK');
+  document.getElementById('assignBody').innerHTML = `
+    <div class="field">
+      <label>Statut actuel</label>
+      <div class="note-box">${emp.id ? (emp.id==='PERSONNEL'?'Usage personnel (hôte)':esc(emp.nom)) : 'Libre'}</div>
+    </div>
+    <div class="field">
+      <label>Attribuer à une réservation</label>
+      <select id="assignSelect">
+        <option value="">— Libérer l'emplacement —</option>
+        ${isPersonnel?`<option value="PERSONNEL" ${emp.id==='PERSONNEL'?'selected':''}>Usage personnel (hôte)</option>`:''}
+        ${options}
+      </select>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn primary" onclick="submitAssign('${spot}')">Enregistrer</button>
+      <button class="btn ghost" onclick="closeAssignModal()">Annuler</button>
+    </div>
+  `;
+  document.getElementById('assignModal').classList.add('open');
+}
+function closeAssignModal(){ document.getElementById('assignModal').classList.remove('open'); }
+async function submitAssign(spot){
+  const val = document.getElementById('assignSelect').value;
+  try{
+    await apiPost('assign', {spot, id: val});
+    toast('Emplacement '+spot+' mis à jour');
+    closeAssignModal();
+    await refreshAll();
+    renderMap();
+  }catch(err){ toast('Erreur: '+err.message, true); }
+}
+
+/* ============================================================================
+   RENDER: RESERVATIONS
+   ============================================================================ */
+document.querySelectorAll('#statusFilter button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#statusFilter button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    renderReservations();
+  });
+});
+function renderReservations(){
+  document.getElementById('navResCount').textContent = STATE.reservations.filter(r=>r.statut==='Confirmee').length;
+  const q = (document.getElementById('resSearch').value||'').toLowerCase();
+  const activeStatus = document.querySelector('#statusFilter button.active').dataset.s;
+  let rows = STATE.reservations.filter(r=>{
+    const matchQ = !q || r.nom.toLowerCase().includes(q) || r.id.toLowerCase().includes(q);
+    const matchS = activeStatus==='Tous' || r.statut===activeStatus;
+    return matchQ && matchS;
+  });
+  const body = document.getElementById('resTableBody');
+  if(!rows.length){ body.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="big">🏕️</div>Aucune réservation trouvée.</div></td></tr>`; return; }
+  body.innerHTML = rows.map(r=>`
+    <tr onclick="openReservation('${r.id}')">
+      <td><b>${esc(r.nom)}</b><div style="font-size:11px;color:var(--ink-soft)" class="mono">${r.id}</div></td>
+      <td>${r.personnes}</td>
+      <td>${fmtDate(r.arrivee)}</td>
+      <td>${fmtDate(r.depart)}</td>
+      <td><span class="badge ${r.statut}">${r.statut}</span></td>
+      <td><span class="badge ${r.parking}">${r.parking}</span></td>
+      <td>${r.revenu.toFixed(2)} €</td>
+    </tr>
+  `).join('');
+}
+function fmtDate(d){ if(!d) return '–'; const p=d.split('-'); return p.length===3?p[2]+'/'+p[1]:d; }
+function esc(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function openReservation(id){
+  const r = STATE.reservations.find(x=>x.id===id);
+  const spots = STATE.emplacements.filter(e=>e.id===id).map(e=>e.spot);
+  document.getElementById('drawerTitle').textContent = r.nom;
+  document.getElementById('drawerBody').innerHTML = `
+    <div class="field"><label>Emplacement(s)</label><div class="note-box">${spots.length?spots.join(', '):'Aucun — voir Carte du terrain'}</div></div>
+    <div class="field"><label>Voyageur</label><input id="f_nom" value="${escAttr(r.nom)}"></div>
+    <div class="field-row">
+      <div class="field"><label>Téléphone</label><input id="f_tel" value="${escAttr(r.tel)}"></div>
+      <div class="field"><label>Personnes</label><input id="f_personnes" type="number" min="1" value="${r.personnes}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Arrivée</label><input id="f_arrivee" type="date" value="${r.arrivee}"></div>
+      <div class="field"><label>Départ</label><input id="f_depart" type="date" value="${r.depart}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Statut</label>
+        <select id="f_statut">
+          ${['Confirmee','Expiree','Annulee','Refusee','En attente'].map(s=>`<option ${r.statut===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Parking</label>
+        <select id="f_parking">
+          <option value="Non" ${r.parking==='Non'?'selected':''}>Non</option>
+          <option value="Oui" ${r.parking==='Oui'?'selected':''}>Oui (5 €)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Toilettes</label><input id="f_toilettes" value="${escAttr(r.toilettes)}"></div>
+    <div class="field"><label>Options / Véhicule</label><input id="f_options" value="${escAttr(r.options)}"></div>
+    <div class="field"><label>Revenu (EUR)</label><input id="f_revenu" type="number" step="0.01" value="${r.revenu}"></div>
+    <div class="field"><label>Notes / Demandes spéciales</label><textarea id="f_notes">${esc(r.notes)}</textarea></div>
+    <div class="drawer-foot">
+      <button class="btn primary" onclick="saveReservation('${r.id}')">Enregistrer</button>
+      <button class="btn danger" onclick="deleteReservation('${r.id}','${escAttr(r.nom)}')">Supprimer</button>
+    </div>
+  `;
+  document.getElementById('drawerOverlay').classList.add('open');
+}
+function escAttr(s){ return esc(s).replace(/"/g,'&quot;'); }
+function closeDrawer(){ document.getElementById('drawerOverlay').classList.remove('open'); }
+
+async function saveReservation(id){
+  const fields = {
+    nom:'f_nom', tel:'f_tel', personnes:'f_personnes', arrivee:'f_arrivee', depart:'f_depart',
+    statut:'f_statut', parking:'f_parking', toilettes:'f_toilettes', options:'f_options',
+    revenu:'f_revenu', notes:'f_notes'
+  };
+  try{
+    for(const key in fields){
+      const el = document.getElementById(fields[key]);
+      await apiPost('update', {sheet:'Reservations', keyField:'ID Reservation', key:id, field:FIELD_MAP[key], value:el.value});
+    }
+    toast('Réservation enregistrée');
+    closeDrawer();
+    await refreshAll();
+  }catch(err){ toast('Erreur: '+err.message, true); }
+}
+async function deleteReservation(id, nom){
+  if(!confirm('Supprimer la réservation de '+nom+' ? Cette action est irréversible.')) return;
+  try{
+    await apiPost('delete', {sheet:'Reservations', keyField:'ID Reservation', key:id});
+    toast('Réservation supprimée');
+    closeDrawer();
+    await refreshAll();
+  }catch(err){ toast('Erreur: '+err.message, true); }
+}
+
+/* ============================================================================
+   ADD RESERVATION
+   ============================================================================ */
+function openAddReservation(){
+  document.getElementById('addForm').innerHTML = `
+    <div class="field"><label>Voyageur</label><input id="n_nom" placeholder="Nom Prénom"></div>
+    <div class="field-row">
+      <div class="field"><label>Téléphone</label><input id="n_tel"></div>
+      <div class="field"><label>Personnes</label><input id="n_personnes" type="number" min="1" value="2"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Arrivée</label><input id="n_arrivee" type="date" value="2026-08-20"></div>
+      <div class="field"><label>Départ</label><input id="n_depart" type="date" value="2026-08-22"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Statut</label>
+        <select id="n_statut">${['Confirmee','En attente','Expiree','Annulee','Refusee'].map(s=>`<option>${s}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Parking</label>
+        <select id="n_parking"><option value="Non">Non</option><option value="Oui">Oui (5 €)</option></select>
+      </div>
+    </div>
+    <div class="field"><label>Options / Véhicule</label><input id="n_options" placeholder="ex: 2 tentes"></div>
+    <div class="field"><label>Revenu (EUR)</label><input id="n_revenu" type="number" step="0.01" value="0"></div>
+    <div class="field"><label>Notes</label><textarea id="n_notes"></textarea></div>
+    <div class="drawer-foot">
+      <button class="btn primary" onclick="submitAddReservation()">Créer la réservation</button>
+      <button class="btn ghost" onclick="closeAddModal()">Annuler</button>
+    </div>
+  `;
+  document.getElementById('addModal').classList.add('open');
+}
+function closeAddModal(){ document.getElementById('addModal').classList.remove('open'); }
+async function submitAddReservation(){
+  const nom = document.getElementById('n_nom').value.trim();
+  if(!nom){ toast('Le nom du voyageur est requis', true); return; }
+  const newId = 'loc' + Date.now().toString(36);
+  const data = {
+    "N": STATE.reservations.length+1,
+    "ID Reservation": newId,
+    "Voyageur": nom,
+    "Telephone": document.getElementById('n_tel').value,
+    "Personnes": Number(document.getElementById('n_personnes').value||1),
+    "Arrivee": document.getElementById('n_arrivee').value,
+    "Depart": document.getElementById('n_depart').value,
+    "Statut": document.getElementById('n_statut').value,
+    "Parking (Oui/Non)": document.getElementById('n_parking').value,
+    "Toilettes": "Standard (exterieur)",
+    "Options / Vehicule": document.getElementById('n_options').value,
+    "Revenu (EUR)": Number(document.getElementById('n_revenu').value||0),
+    "Notes / Demandes speciales": document.getElementById('n_notes').value
+  };
+  try{
+    await apiPost('add', {sheet:'Reservations', data});
+    toast('Réservation créée 🎉'); confetti();
+    closeAddModal();
+    await refreshAll();
+  }catch(err){ toast('Erreur: '+err.message, true); }
+}
+
+/* ============================================================================
+   RENDER: DAYS
+   ============================================================================ */
+function renderDays(){
+  const tabs = document.getElementById('dayTabs');
+  tabs.innerHTML = DAYS.map(d=>`<button class="tab ${d.key===STATE.currentDay?'active':''}" onclick="setDay('${d.key}')">${d.label}</button>`).join('');
+  renderDayContent();
+}
+function setDay(key){ STATE.currentDay = key; renderDays(); }
+function renderDayContent(){
+  const day = DAYS.find(d=>d.key===STATE.currentDay);
+  const wrap = document.getElementById('dayContent');
+  wrap.innerHTML = CATS.map(cat=>{
+    const spots = STATE.emplacements.filter(e=>spotPrefix(e.spot)===cat.key)
+      .sort((a,b)=> parseInt(a.spot.replace(/\D/g,''))-parseInt(b.spot.replace(/\D/g,'')));
+    const occ = spots.filter(e=>isOccupiedOn(e, day.date));
+    const chips = spots.map(e=>{
+      const occupied = isOccupiedOn(e, day.date);
+      const personnel = e.id==='PERSONNEL';
+      const cls = personnel?'personnel':(occupied?'occupied '+cat.cls:'libre');
+      const who = personnel?'Usage personnel':(occupied?esc(e.nom):'Libre');
+      return `<div class="spot-chip ${cls}" style="cursor:default;">
+        <div class="code">${e.spot}</div><div class="who">${who}</div>
+      </div>`;
+    }).join('');
+    return `<div class="zone-block">
+      <div class="zone-head"><span class="swatch" style="background:${cat.swatch}"></span><h3>${cat.label}</h3><span class="cap">${occ.length}/${cat.count} occupés</span></div>
+      <div class="spot-grid">${chips}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================================
+   RENDER: PAIEMENTS
+   ============================================================================ */
+function renderPaiements(){
+  const confirmed = STATE.reservations.filter(r=>r.statut==='Confirmee');
+  const withParking = confirmed.filter(r=>r.parking==='Oui');
+  const withoutParking = confirmed.filter(r=>r.parking!=='Oui');
+  document.getElementById('parkCount').textContent = withParking.length+' actif(s)';
+
+  document.getElementById('paiementsList').innerHTML = `
+    ${withParking.map(r=>`
+      <div class="alert-row" style="background:var(--moss-pale);">
+        <span class="ic" style="color:var(--moss)">✓</span>
+        <span style="flex:1;"><b>${esc(r.nom)}</b> — parking accepté · <b>5 €</b> à encaisser à l'arrivée</span>
+        <button class="btn sm ghost" onclick="setParking('${r.id}','Non')">Retirer</button>
+      </div>`).join('')}
+    <div class="note-box" style="margin:14px 0 8px;">Réservations confirmées sans parking assigné — clique pour accepter :</div>
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      ${withoutParking.map(r=>`<button class="btn sm" onclick="setParking('${r.id}','Oui')">+ Parking · ${esc(r.nom)}</button>`).join('')}
+    </div>
+  `;
+
+  const refunds = confirmed.filter(r=>/rembourser/i.test(r.notes));
+  const rl = document.getElementById('refundsList');
+  if(!refunds.length){ rl.innerHTML = `<div class="empty">Aucun remboursement en attente.</div>`; }
+  else {
+    rl.innerHTML = refunds.map(r=>{
+      const done = /\[REMBOURSE\]/.test(r.notes);
+      return `<div class="alert-row" style="background:${done?'var(--moss-pale)':'var(--clay-pale)'}">
+        <span class="ic" style="color:${done?'var(--moss)':'var(--clay)'}">${done?'✓':'⚠'}</span>
+        <span style="flex:1;"><b>${esc(r.nom)}</b> — ${esc(r.notes.replace('[REMBOURSE]',''))}</span>
+        ${done? '<span style="font-size:11px;font-weight:700;color:var(--moss)">Remboursé</span>' :
+          `<button class="btn sm primary" onclick="markRefunded('${r.id}')">Marquer remboursé</button>`}
+      </div>`;
+    }).join('');
+  }
+}
+async function setParking(id, value){
+  try{
+    await apiPost('update', {sheet:'Reservations', keyField:'ID Reservation', key:id, field:'Parking (Oui/Non)', value});
+    toast(value==='Oui' ? 'Parking accepté (5 € appliqué)' : 'Parking retiré');
+    if(value==='Oui') confetti();
+    await refreshAll();
+    renderPaiements();
+  }catch(err){ toast('Erreur: '+err.message, true); }
+}
+async function markRefunded(id){
+  const r = STATE.reservations.find(x=>x.id===id);
+  const newNotes = r.notes + ' [REMBOURSE]';
+  try{
+    await apiPost('update', {sheet:'Reservations', keyField:'ID Reservation', key:id, field:'Notes / Demandes speciales', value:newNotes});
+    toast('Marqué comme remboursé');
+    await refreshAll();
+    renderPaiements();
+  }catch(err){ toast('Erreur: '+err.message, true); }
+}
+
+/* ============================================================================
+   RENDER: CHECKLIST (local, informatif)
+   ============================================================================ */
+function renderChecklist(){
+  const wrap = document.getElementById('checklistBody');
+  wrap.innerHTML = CHECKLIST_STEPS.map((s,i)=>`
+    <label class="checklist-item" id="ck_${i}">
+      <span class="num">${i+1}</span>
+      <input type="checkbox" onchange="document.getElementById('ck_${i}').classList.toggle('done', this.checked)">
+      <span>${s}</span>
+    </label>
+  `).join('');
+}
+
+/* ============================================================================
+   RENDER ALL / INIT
+   ============================================================================ */
+function safe(fn){ try{ fn(); }catch(err){ console.error(err); } }
+function renderAll(){
+  safe(renderDashboard);
+  safe(renderReservations);
+  safe(renderBell);
+  const activeView = document.querySelector('.navitem.active').dataset.view;
+  if(activeView==='map') safe(renderMap);
+  if(activeView==='days') safe(renderDays);
+  if(activeView==='paiements') safe(renderPaiements);
+  if(activeView==='calendrier') safe(renderCalendrier);
+  if(activeView==='statistiques') safe(renderStatistiques);
+}
+function renderBell(){
+  const confirmed = STATE.reservations.filter(r=>r.statut==='Confirmee');
+  const pending = confirmed.filter(r=>/rembourser/i.test(r.notes) && !/\[REMBOURSE\]/.test(r.notes)).length;
+  document.getElementById('bellDot').style.display = pending>0 ? 'block' : 'none';
+}
+
+function saveApiUrl(){
+  const v = document.getElementById('apiUrlInput').value.trim();
+  if(!v){ return; }
+  CONFIG.API_URL = v;
+  document.getElementById('configBanner').style.display='none';
+  refreshAll(true);
+}
+
+(function init(){
+  if(!CONFIG.API_URL){ document.getElementById('configBanner').style.display='flex'; }
+  else { refreshAll(); }
+})();
+</script>
+</body>
+</html>
